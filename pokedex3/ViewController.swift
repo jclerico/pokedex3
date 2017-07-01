@@ -30,8 +30,12 @@ class ViewController: UIViewController, UICollectionViewDelegate,UICollectionVie
         //Assigning delegate & datasource to self so we can see a collection
         collection.dataSource = self
         collection.delegate = self
+        
         //Assigning delegate to self for searchbar so we can implement methods that are connect to the delegate
         searchBar.delegate = self
+        
+        //Change search button to 'Done' instead of 'Search'
+        searchBar.returnKeyType = UIReturnKeyType.done
         
         //Call Func when the application loads so its ready for us to use
         parsePokemonCSV()
@@ -99,11 +103,23 @@ class ViewController: UIViewController, UICollectionViewDelegate,UICollectionVie
         // Set the ReuseIdentifier in the Attributes Inspector fo the cell
         if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PokeCell", for: indexPath) as? PokeCell {
             
-            let poke = pokemon[indexPath.row]
-            //Each time this function is called, take the pokemon at indexPath.row, assign it to poke and then pass poke into cell.configureCell
-            cell.configureCell(poke)
+            //
+            let poke: Pokemon!
             
+            if inSearchMode {
+                
+                //If in search mode, the poke is equal to the filtered Pokemon from the filtered array
+                poke = filteredPokemon[indexPath.row]
+                cell.configureCell(poke)
+            } else {
+                
+                //If were not in search mode then Poke is equal to Pokemon from the original array.
+                poke = pokemon[indexPath.row]
+                cell.configureCell(poke)
+                
+            }
             return cell
+            
         } else {
             return UICollectionViewCell()
             //Using dequeueReusableCell since there are 718 Pokemon, dont want app to try and load all 718 cells.. Using this it only loads how many are going to be displayed at a time. When you scroll, those that go off the screen dequeue and we pick up another cell..... The else statement is saying grab a dequeue cell if you can, if not return empty generic cell.
@@ -113,13 +129,32 @@ class ViewController: UIViewController, UICollectionViewDelegate,UICollectionVie
     //Code will be executed when we tap on a cell
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         
+        //Creating variable poke of type Pokemon
+        var poke: Pokemon!
+        
+        if inSearchMode {
+            //If in search mode take from filtered Pokemon list
+            poke = filteredPokemon[indexPath.row]
+        } else {
+            //If not in search mode take from original Pokemon list
+            poke = pokemon[indexPath.row]
+        }
+        //Going to perform the segue PokemonDetailVC, and we are sending the item 'poke' that we declared above
+        performSegue(withIdentifier: "PokemonDetailVC", sender: poke)
+        
         
     }
     
     //Sets the number of items in the section
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
-        return pokemon.count //As many pokemon as are in the array
+        //If using search bar then return number of items from filtered array
+        if inSearchMode {
+            return filteredPokemon.count
+        }
+        
+        //If not in search mode then return number of items from normal array
+        return pokemon.count
     }
     
     //The number of sections in the collection view
@@ -154,6 +189,11 @@ class ViewController: UIViewController, UICollectionViewDelegate,UICollectionVie
         }
     }
     
+    //Make keyboard disappear when we click on the return button
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        view.endEditing(true)
+    }
+    
     //Whenever a keystroke is made in the searchbar, the code below will be called
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         
@@ -163,6 +203,9 @@ class ViewController: UIViewController, UICollectionViewDelegate,UICollectionVie
             
             //If nothings in search bar or if we deleted what we had in the search bar, then revert back to the original list of Pokemon 
             collection.reloadData()
+            
+            //Want keyboard to disappear when we delete/clear search bar
+            view.endEditing(true)
             
         } else {
             //ELSE we ARE in search mode
@@ -186,10 +229,24 @@ class ViewController: UIViewController, UICollectionViewDelegate,UICollectionVie
         }
     }
     
+    
+    //Happens before segue occurs, this is where we can set data up to be passed between view controllers
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        //If segue.identifier == "PokemonDetailVC" is true, then we create a variable for detailsVC, and the Destination View Controller is PokemonDetailVC.
+        if segue.identifier == "PokemonDetailVC" {
+            if let detailsVC = segue.destination as? PokemonDetailVC {
+                
+                //poke is the sender and its of class Pokemon
+                if let poke = sender as? Pokemon {
+                    
+                    //Now we use detailsVC, which defined as the Destination View Controller, and pokemon is the variable created in PokemonDetailVC.swift.
+                    detailsVC.pokemon = poke
+                    
+                    //Breif Explanation: Were saying the destination controller that contains the variable pokemon, were setting it to the view controllers variable 'poke'.
+                    }
+                }
+        }
+        
+    }
 }
-
-
-
-
-
-
